@@ -27,8 +27,8 @@ time.localtime(email.utils.mktime_tz(email.utils.parsedate_tz("Mon, 28 Nov 2011 
 
 
 
-To get use IMAP4.search
-=======================
+To use IMAP4.search
+===================
 
 def number_set(seq):
     seq.sort()
@@ -42,3 +42,12 @@ for search_batch in search_data:
     typ, fetch_data = connection.uid("FETCH", message_set, '(BODY[HEADER.FIELDS (DATE FROM SUBJECT)])')
     for msg in itertools.islice(fetch_data, 0, None, 2):
         print msg[1]
+
+
+
+unicode sumbols for geometric shapes
+====================================
+
+http://en.wikipedia.org/wiki/Geometric_Shapes
+
+Right arrow to be used in count bubles - unichr(0x25B6) / unicode('\x25B6')
