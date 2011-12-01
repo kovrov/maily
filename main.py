@@ -45,12 +45,12 @@ class Conversation(qt.QObject):
 
     def __init__(self, thread):
         qt.QObject.__init__(self)
-        self._id = str(thread[0])
-        self._senders = str(thread[1])
+        self.__id = str(thread[0])
+        self.__senders = str(thread[1])
 
     changed = qt.Signal()
-    subject = qt.Property(unicode, lambda self: self._id, notify=changed)
-    participants = qt.Property(unicode, lambda self: self._senders, notify=changed)
+    subject = qt.Property(unicode, lambda self: self.__id, notify=changed)
+    participants = qt.Property(unicode, lambda self: self.__senders, notify=changed)
 
 
 
