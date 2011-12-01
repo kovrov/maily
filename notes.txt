@@ -1,0 +1,13 @@
+To cancel ongoing operation in brutal way:
+
+connection.socket().setblocking(0)
+
+
+try:
+    typ, fetched_data = connection.fetch(message_set, message_parts)
+except ssl.SSLError as err:
+    errno, string = err
+    if errno in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE) and 0 == connection.socket().gettimeout():
+        print "OPERATION CANCELED"
+        connection.socket().setblocking(1)
+        ...
