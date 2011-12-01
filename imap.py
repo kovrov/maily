@@ -1,28 +1,7 @@
-import getpass, imaplib
-from itertools import islice
-from email.parser import HeaderParser
-from email.header import decode_header, make_header
-# from email.utils import parsedate_tz #time.localtime(mktime_tz(parsedate_tz("Mon, 28 Nov 2011 05:33:17 -0800 (PST)")))
-from operator import itemgetter, attrgetter
-
+from imaplib import IMAP4_SSL
 from threading import Thread
 from Queue import Queue
 
-'''
-def number_set(seq):
-    seq.sort()
-    return ','.join(map(lambda t: str(t[0]) if t[0]==t[1] else "{0:d}:{1:d}".format(*t),
-            zip([i for n,i in enumerate(seq) if n == 0 or i - seq[n-1] > 1],
-                [i for n,i in enumerate(seq) if n+1 == len(seq) or seq[n+1] - i > 1])))
-
-def search(connection, *criteria):
-    typ, search_data = connection.uid('SEARCH', None, *criteria)
-    for search_batch in search_data:
-        message_set = number_set([int(i) for i in search_batch.split()])
-        typ, fetch_data = connection.uid("FETCH", message_set, '(BODY[HEADER.FIELDS (DATE FROM SUBJECT)])')
-        for msg in islice(fetch_data, 0, None, 2):
-            yield msg[1]
-'''
 
 
 class Client(Thread):
@@ -40,17 +19,16 @@ class Client(Thread):
         session = Session(self.__store, *self.__args)
         while True:
             print "  # __queue.get()"
-            callback, method, args = self.__queue.get()
+            method, args = self.__queue.get()
             if method is 'terminate':
                 self.__queue.task_done()
                 break
             res = getattr(session, method)(*args)
-            # callback(*res)
             self.__queue.task_done()
 
-    def call(self, callback, method, *args):
+    def call(self, method, *args):
         print "### Client.call"
-        self.__queue.put((callback, method, args))
+        self.__queue.put((method, args))
 
 
 
@@ -62,7 +40,7 @@ class Session(object):
 
         self.smallest_uid_position = 0  # zero is invalid
 
-        self.connection = imaplib.IMAP4_SSL("imap.gmail.com")
+        self.connection = IMAP4_SSL("imap.gmail.com")
         self.connection.login(user, pswd)
         typ, messages_count = self.connection.select()
         self.smallest_uid_position = int(messages_count[0])

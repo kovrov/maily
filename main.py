@@ -86,7 +86,7 @@ ctx.setContextProperty('pythonListModel', model)
 view.setSource('desktop.qml')
 
 button = view.rootObject().findChild(qt.QObject, "moreButton")
-button.clicked.connect(lambda: controller.worker.call(None, 'getMoreConversations', 5))
+button.clicked.connect(lambda: controller.worker.call('getMoreConversations', 5))
 
 window = QMainWindow()
 window.setCentralWidget(view)
@@ -95,4 +95,4 @@ window.show()
 
 app.exec_()
 
-controller.worker.call(None, 'terminate')
+controller.worker.call('terminate')

@@ -1,7 +1,13 @@
+============
+random notes
+============
+
+
+
 To cancel ongoing operation in brutal way:
+==========================================
 
 connection.socket().setblocking(0)
-
 
 try:
     typ, fetched_data = connection.fetch(message_set, message_parts)
@@ -11,3 +17,28 @@ except ssl.SSLError as err:
         print "OPERATION CANCELED"
         connection.socket().setblocking(1)
         ...
+
+
+
+To get time from rfc822 message
+===============================
+
+time.localtime(email.utils.mktime_tz(email.utils.parsedate_tz("Mon, 28 Nov 2011 05:33:17 -0800 (PST)")))
+
+
+
+To get use IMAP4.search
+=======================
+
+def number_set(seq):
+    seq.sort()
+    return ','.join(map(lambda t: str(t[0]) if t[0]==t[1] else "{0:d}:{1:d}".format(*t),
+            zip([i for n,i in enumerate(seq) if n == 0 or i - seq[n-1] > 1],
+                [i for n,i in enumerate(seq) if n+1 == len(seq) or seq[n+1] - i > 1])))
+
+typ, search_data = connection.uid('SEARCH', None, *criteria)
+for search_batch in search_data:
+    message_set = number_set([int(i) for i in search_batch.split()])
+    typ, fetch_data = connection.uid("FETCH", message_set, '(BODY[HEADER.FIELDS (DATE FROM SUBJECT)])')
+    for msg in itertools.islice(fetch_data, 0, None, 2):
+        print msg[1]
