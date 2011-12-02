@@ -28,10 +28,10 @@ class ConversationstModel(qt.QAbstractListModel):
         return None
 
     def conversationsChanged(self, snapshot, diff):
-        modified, added = diff
-        xxx = [store.b_index(snapshot.conversations, i) for i in added]
-        pairs = zip([i for n,i in enumerate(xxx) if n == 0 or i - xxx[n-1] > 1],
-                   [i+1 for n,i in enumerate(xxx) if n+1 == len(xxx) or xxx[n+1] - i > 1])
+        modified_ids, added_ids = diff
+        indices = [store.b_index(snapshot.conversations, i) for i in added_ids]
+        pairs = zip([i for n,i in enumerate(indices) if n == 0 or i - indices[n-1] > 1],
+                  [i+1 for n,i in enumerate(indices) if n+1 == len(indices) or indices[n+1] - i > 1])
 
         for begin, end in pairs:
             self.beginInsertRows(qt.QModelIndex(), begin, end-1)
@@ -45,12 +45,12 @@ class Conversation(qt.QObject):
 
     def __init__(self, thread):
         qt.QObject.__init__(self)
-        self.__id = str(thread[0])
-        self.__senders = str(thread[1])
+        self._id = str(thread.id)
+        self._message_ids = str(thread.message_ids)
 
     changed = qt.Signal()
-    subject = qt.Property(unicode, lambda self: self.__id, notify=changed)
-    participants = qt.Property(unicode, lambda self: self.__senders, notify=changed)
+    subject = qt.Property(unicode, lambda self: self._id, notify=changed)
+    participants = qt.Property(unicode, lambda self: self._message_ids, notify=changed)
 
 
 
