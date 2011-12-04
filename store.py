@@ -80,6 +80,7 @@ class Transaction(object):
         self._store.snapshot = Snapshot(conversations=new_conversations, messages=self._snapshot.messages)
         self._store.conversationsChanged.emit(self._store.snapshot, (sorted(self.thrids.modified.keys()),
                                                                        sorted(self.thrids.added.keys())))
+        self.__init__(self._store)
 
 
 
