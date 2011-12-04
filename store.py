@@ -21,6 +21,8 @@ Snapshot = namedtuple('Snapshot',['conversations','messages'])
 
 def b_index(a, key):
     lo, hi = 0, len(a)
+    if lo < hi and key == a[lo].id:
+        return lo
     while lo < hi - 1:
         mid = (lo + hi) // 2
         if key < a[mid].id:
