@@ -110,7 +110,7 @@ class TransactionField(object):
 
 
 Conversation = namedtuple('Conversation',['id','message_ids'])
-class MutableConversation:
+class MutableConversation(object):
     def __init__(self, id, message_ids=None):
         self._id = id
         self._message_ids = [] if message_ids is None else message_ids
@@ -119,6 +119,9 @@ class MutableConversation:
         if type(self._message_ids) is tuple:
             self._message_ids = list(self._message_ids)
         return self._message_ids
+    @message_ids.setter
+    def message_ids(self, value):
+        self._message_ids = sorted(value)
     def copy(self, *values):
         self._id, self._message_ids = values
     def __iter__(self):
