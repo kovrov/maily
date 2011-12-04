@@ -19,6 +19,16 @@ except ssl.SSLError as err:
         ...
 
 
+Parse message headers
+=====================
+
+parser = email.parser.HeaderParser()
+headers = parser.parsestr(raw_headers)
+print headers['date']
+print unicode(make_header(decode_header(headers['subject']))).replace('\r\n ',' ')
+print unicode(make_header(decode_header(headers['from'])))
+
+
 
 To get time from rfc822 message
 ===============================
