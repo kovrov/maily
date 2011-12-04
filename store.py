@@ -141,4 +141,4 @@ class MutableMessage:
     def __iter__(self):
         return (i for i in (self._id, self.flags, self.subject, self.sender, self.timestamp))
     def __repr__(self):
-        return 'MutableConversation' + str((self._id, self.flags, self.subject, self.sender, self.timestamp))
+        return 'MutableMessage' + str((self._id, self.flags, self.subject, self.sender, self.timestamp))
