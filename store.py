@@ -72,10 +72,6 @@ class Transaction(object):
         self.thrids = ConversationsDefaultDict(self._snapshot.conversations)
         self.messages = MessagesDefaultDict(self._snapshot.messages)
 
-    def add_uid(self, message_id, thread_id):
-        self.thrids[thread_id].message_ids.append(message_id)
-        self.thrids[thread_id].message_ids.sort()
-
     def commit(self, block=True):
         new_conversations = _merge(self._snapshot.conversations, self.thrids.modified, self.thrids.added, Conversation)
         self._store.snapshot = Snapshot(conversations=new_conversations, messages=self._snapshot.messages)

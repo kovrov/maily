@@ -1,6 +1,11 @@
 from imaplib import IMAP4_SSL
+from email.parser import HeaderParser
+from email.header import make_header, decode_header
 from threading import Thread
 from Queue import Queue
+from itertools import islice
+import re
+import store
 
 
 
@@ -64,7 +69,7 @@ class Session(object):
             self.prefetch_data = (fetched_hi, fetched_lo, fetched_data)
         return fetched_data[lo-fetched_lo : hi-fetched_lo+1]
 
-    def _load_messages(self, count, transaction):
+    def _fetch_uids(self, count):
         # messages and threads are always sorted by server (reverse-order by uid, biggest first)
         fetch_data = self._fetch_cached(self.smallest_uid_position,
                                          self.smallest_uid_position - (count - 1),
@@ -72,17 +77,45 @@ class Session(object):
         # The data is list of strings "123 (X-GM-THRID 456 UID 789)"
         for number, data in (line.split(None,1) for line in fetch_data):
             # Transforming "(X-GM-THRID 456 UID 789)" to {"UID": 789, "X-GM-THRID": 456}
-            item = dict(map(lambda i: (i[0],int(i[1])), zip(*[iter(data.strip('()').split())]*2)))
-            # add_uid_thrid will add thread to transaction if needed
-            transaction.add_uid(message_id=item['UID'], thread_id=item['X-GM-THRID'])
+            yield dict(map(lambda i: (i[0],long(i[1])), zip(*[iter(data.strip('()').split())]*2)))
         # FIXME: not sure if this belongs here..
         self.smallest_uid_position -= len(fetch_data)
-        return len(fetch_data)
 
+    def _search_thrid(self, thrid):
+        print 'SEARCH X-GM-THRID', thrid
+        typ, data = self.connection.uid("SEARCH", None, 'X-GM-THRID', thrid)
+        return [long(i) for i in data[0].split()]
+
+    uid_pattern = re.compile('UID (\d+)')
+    def _fetch_headers(self, uids, headers):
+        message_set = ','.join(map(lambda i: str(i), uids))
+        message_parts = '(BODY[HEADER.FIELDS ('+ ' '.join(headers) +')])'
+        print 'FETCH', message_set, message_parts
+        typ, data = self.connection.uid("FETCH", message_set, message_parts)
+        for uid, raw_headers in islice(data, 0, None, 2):
+            yield long(re.search(self.uid_pattern, uid).group(1)), raw_headers
+
+    email_parser = HeaderParser()
     def getMoreConversations(self, count):
         with self._store.writeLock as transaction:
-            while len(transaction.thrids.added) < count:
-                n = count - len(transaction.thrids.added)
-                if n > self._load_messages(n, transaction):
+            thrids = store.ConversationsDefaultDict(self._store.snapshot.conversations)
+            while len(thrids.added) < count:
+                n = count - len(thrids.added)
+                for item in self._fetch_uids(n):
+                    thrids[item['X-GM-THRID']].message_ids.append(item['UID'])
+                    thrids[item['X-GM-THRID']].message_ids.sort()
+                    n -= 1
+                if n > 0:
                     break
-            transaction.commit(block=True)
+            for thrid in thrids.added:
+                uids = self._search_thrid(thrid)
+                for uid, raw_headers in self._fetch_headers((uids[0],uids[-1]), ('SUBJECT','FROM','DATE')):
+                    headers = self.email_parser.parsestr(raw_headers)
+                    message = transaction.messages[uid]
+                    message.subject = unicode(make_header(decode_header(headers['subject']))).replace('\r\n ',' ')
+                    message.sender = unicode(make_header(decode_header(headers['from'])))
+                    message.timestamp = headers['date']
+                transaction.thrids[thrid].message_ids = uids
+                transaction.thrids[thrid].subject = transaction.messages[uids[0]].subject
+                transaction.thrids[thrid].date = transaction.messages[uids[-1]].timestamp
+                transaction.commit(block=True)
