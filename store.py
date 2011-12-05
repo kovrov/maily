@@ -110,11 +110,14 @@ class DefaultDict(object):
 
 
 
-Conversation = namedtuple('Conversation',['id','message_ids'])
+ConversationColumns = ('id','message_ids','date','subject')
+Conversation = namedtuple('Conversation',ConversationColumns)
 class MutableConversation(object):
-    def __init__(self, id, message_ids=None):
+    def __init__(self, id, message_ids=None, date=None, subject=None):
         self._id = id
         self._message_ids = [] if message_ids is None else message_ids
+        self.date = date
+        self.subject = subject
     @property
     def message_ids(self):
         if type(self._message_ids) is tuple:
@@ -124,11 +127,11 @@ class MutableConversation(object):
     def message_ids(self, value):
         self._message_ids = sorted(value)
     def copy(self, *values):
-        self._id, self._message_ids = values
+        self._id, self._message_ids, self.date, self.subject = values
     def __iter__(self):
-        return (i for i in (self._id, tuple(self._message_ids)))
+        return (i for i in (self._id, tuple(self._message_ids), self.date, self.subject))
     def __repr__(self):
-        return 'MutableConversation' + str((self._id, self._message_ids))
+        return 'MutableConversation' + str((self._id, self._message_ids, self.date, self.subject))
 
 
 
