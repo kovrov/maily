@@ -6,6 +6,7 @@ from collections import namedtuple
 '''
 Main concepts:
 * Immutable data to share between threads (no copying, no read-locking)
+* Data is partially persistent (http://en.wikipedia.org/wiki/Persistent_data_structure)
 * Atomic snapshots of data (versions)
 * Transactional atomic changes to data (new snapshot)
 * Write-locking to prevent concurrent commit conflicts
