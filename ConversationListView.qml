@@ -15,14 +15,14 @@ ListView {
 
                 Text {
                     id: subjectText
-                    text: model.self.subject
+                    text: model.subject
                     font.weight: Font.Bold
                     font.pixelSize: 26
                 }
 
                 Text {
                     id: timestampText
-                    text: model.self.participants
+                    text: model.date
                     font.weight: Font.Light
                     font.pixelSize: 22
                     color: "#cc6633"
@@ -35,7 +35,7 @@ ListView {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                onClicked: { controller.thingSelected(model.self) }
+                onClicked: { controller.thingSelected(model.id) }
             }
         }
     }

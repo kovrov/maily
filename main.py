@@ -11,21 +11,19 @@ import store
 
 class ConversationstModel(qt.QAbstractListModel):
 
-    COLUMNS = ('self',)
-
-    def __init__(self, store):
+    def __init__(self, store_mgr):
         qt.QAbstractListModel.__init__(self)
-        self.setRoleNames(dict(enumerate(ConversationstModel.COLUMNS)))
-        self._data = []
-        store.conversationsChanged.connect(self.conversationsChanged)
+        self.setRoleNames(dict(enumerate(store.ConversationColumns)))
+        self._data = store_mgr.snapshot.conversations
+        store_mgr.conversationsChanged.connect(self.conversationsChanged)
 
     def rowCount(self, parent=qt.QModelIndex()):
         return len(self._data)
 
     def data(self, index, role):
-        if index.isValid() and role == ConversationstModel.COLUMNS.index('self'):
-            return self._data[index.row()]
-        return None
+        if not index.isValid():
+            return None
+        return self._data[index.row()][role]
 
     def conversationsChanged(self, snapshot, diff):
         modified_ids, added_ids = diff
@@ -33,24 +31,13 @@ class ConversationstModel(qt.QAbstractListModel):
         pairs = zip([i for n,i in enumerate(indices) if n == 0 or i - indices[n-1] > 1],
                   [i+1 for n,i in enumerate(indices) if n+1 == len(indices) or indices[n+1] - i > 1])
 
+        self._data = list(self._data)
         for begin, end in pairs:
             self.beginInsertRows(qt.QModelIndex(), begin, end-1)
             for item in snapshot.conversations[begin:end]:
-                self._data.append(Conversation(item))
+                self._data.append(item)
             self.endInsertRows()
-
-
-
-class Conversation(qt.QObject):
-
-    def __init__(self, thread):
-        qt.QObject.__init__(self)
-        self._id = str(thread.id)
-        self._message_ids = str(thread.message_ids)
-
-    changed = qt.Signal()
-    subject = qt.Property(unicode, lambda self: self._id, notify=changed)
-    participants = qt.Property(unicode, lambda self: self._message_ids, notify=changed)
+        self._data = snapshot.conversations
 
 
 
@@ -66,7 +53,7 @@ class Controller(qt.QObject):
         print "# join..."
         self.worker.join(0)  # Thread
 
-    @qt.Slot(Conversation)
+    @qt.Slot(long)
     def thingSelected(self, item):
         print 'User clicked on:', item
 
