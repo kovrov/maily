@@ -69,7 +69,8 @@ class Transaction(object):
     def __init__(self, store):
         self._store = store
         self._snapshot = store.snapshot
-        self.thrids = TransactionField(self._snapshot.conversations, MutableConversation)
+        self.thrids = ConversationsDefaultDict(self._snapshot.conversations)
+        self.messages = MessagesDefaultDict(self._snapshot.messages)
 
     def add_uid(self, message_id, thread_id):
         self.thrids[thread_id].message_ids.append(message_id)
@@ -84,10 +85,10 @@ class Transaction(object):
 
 
 
-class TransactionField(object):
-    def __init__(self, original, MutableType):
+class DefaultDict(object):
+    MutableType = None
+    def __init__(self, original):
         self._original = original
-        self._MutableType = MutableType
         self.added = {}
         self.modified = {}
         self._removed = []
@@ -97,10 +98,10 @@ class TransactionField(object):
         if key in self.modified:
             return self.modified[key]
         try:
-            self.modified[key] = self._MutableType( *self._original[b_index(self._original, key)] )
+            self.modified[key] = self.MutableType( *self._original[b_index(self._original, key)] )
             return self.modified[key]
         except KeyError:
-            self.added[key] = self._MutableType(key)
+            self.added[key] = self.MutableType(key)
             return self.added[key]
     def __setitem__(self, key, value):
         self.__getitem__(key).copy(*value)
@@ -131,6 +132,11 @@ class MutableConversation(object):
 
 
 
+class ConversationsDefaultDict(DefaultDict):
+    MutableType = MutableConversation
+
+
+
 Message = namedtuple('Message',['id','flags','subject','sender','timestamp'])
 class MutableMessage:
     def __init__(self, id, flags=None, subject=None, sender=None, timestamp=None):
@@ -145,3 +151,8 @@ class MutableMessage:
         return (i for i in (self._id, self.flags, self.subject, self.sender, self.timestamp))
     def __repr__(self):
         return 'MutableMessage' + str((self._id, self.flags, self.subject, self.sender, self.timestamp))
+
+
+
+class MessagesDefaultDict(DefaultDict):
+    MutableType = MutableMessage
