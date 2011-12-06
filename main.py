@@ -31,13 +31,10 @@ class ConversationstModel(qt.QAbstractListModel):
         modified_ids, added_ids = diff
         indices = [store.b_index(snapshot.conversations, i) for i in added_ids]
         pairs = zip([i for n,i in enumerate(indices) if n == 0 or i - indices[n-1] > 1],
-                  [i+1 for n,i in enumerate(indices) if n+1 == len(indices) or indices[n+1] - i > 1])
-
-        self._data = list(self._data)
+                    [i for n,i in enumerate(indices) if n+1 == len(indices) or indices[n+1] - i > 1])
         for begin, end in pairs:
-            self.beginInsertRows(qt.QModelIndex(), begin, end-1)
-            for item in snapshot.conversations[begin:end]:
-                self._data.append(item)
+            self.beginInsertRows(qt.QModelIndex(), begin, end)
+            self._data = self._data[:begin] + snapshot.conversations[begin:end+1] + self._data[begin:]
             self.endInsertRows()
         self._data = snapshot.conversations
 
