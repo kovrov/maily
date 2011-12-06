@@ -11,6 +11,7 @@ ListView {
             anchors.fill: parent
 
             Column {
+                width: parent.width
                 anchors.verticalCenter: parent.verticalCenter
 
                 Text {
@@ -18,6 +19,8 @@ ListView {
                     text: model.subject
                     font.weight: Font.Bold
                     font.pixelSize: 26
+                    width: parent.width
+                    elide: Text.ElideRight
                 }
 
                 Text {
@@ -26,8 +29,8 @@ ListView {
                     font.weight: Font.Light
                     font.pixelSize: 22
                     color: "#cc6633"
-
                     visible: text != ""
+                    width: parent.width
                 }
             }
         }
