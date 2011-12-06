@@ -88,7 +88,7 @@ class Session(object):
 
     uid_pattern = re.compile('UID (\d+)')
     def _fetch_headers(self, uids, headers):
-        message_set = ','.join(map(lambda i: str(i), uids))
+        message_set = ','.join(map(lambda i: str(i), sorted(set(uids))))
         message_parts = '(BODY[HEADER.FIELDS ('+ ' '.join(headers) +')])'
         print 'FETCH', message_set, message_parts
         typ, data = self.connection.uid("FETCH", message_set, message_parts)
