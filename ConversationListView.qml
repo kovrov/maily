@@ -38,6 +38,13 @@ ListView {
                 onClicked: { controller.thingSelected(model.id) }
             }
         }
+
+        ListView.onAdd: ParallelAnimation {
+            PropertyAction { target: listItem; property: "scale"; value: 0.75 }
+            PropertyAction { target: listItem; property: "height"; value: 0 }
+            NumberAnimation { target: listItem; property: "scale"; to: 1.0; duration: 75 }
+            NumberAnimation { target: listItem; property: "height"; to: 88; duration: 75 }
+        }
     }
 
     header: Component {
