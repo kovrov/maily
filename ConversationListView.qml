@@ -1,4 +1,5 @@
 import QtQuick 1.1
+import com.nokia.extras 1.0
 
 
 ListView {
@@ -14,13 +15,23 @@ ListView {
                 width: parent.width
                 anchors.verticalCenter: parent.verticalCenter
 
-                Text {
-                    id: subjectText
-                    text: model.subject
-                    font.weight: Font.Bold
-                    font.pixelSize: 26
+                Row {
                     width: parent.width
-                    elide: Text.ElideRight
+                    Text {
+                        id: subjectText
+                        text: model.subject
+                        font.weight: Font.Bold
+                        font.pixelSize: 26
+                        width: countBubble.visible ? parent.width - countBubble.width : parent.width
+                        elide: Text.ElideRight
+                    }
+
+                    CountBubble {
+                        id: countBubble
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: model.count
+                        visible: value != 1
+                    }
                 }
 
                 Text {
