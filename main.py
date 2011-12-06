@@ -12,6 +12,7 @@ import store
 
 
 class ConversationstModel(qt.QAbstractListModel):
+    # TODO: use snapshot.conversations.sorted
 
     def __init__(self, store_mgr):
         qt.QAbstractListModel.__init__(self)

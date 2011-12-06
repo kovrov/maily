@@ -107,6 +107,7 @@ class Session(object):
                     n -= 1
                 if n > 0:
                     break
+            # TODO: sort thrids.added by date
             for thrid in thrids.added:
                 uids = self._search_thrid(thrid)
                 for uid, raw_headers in self._fetch_headers((uids[0],uids[-1]), ('SUBJECT','FROM','DATE')):
