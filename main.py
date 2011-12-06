@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import os.path
+import platform
 import sys
 from PySide import QtCore as qt
 from PySide.QtGui import  QApplication, QMainWindow
@@ -59,6 +61,7 @@ class Controller(qt.QObject):
 
 
 
+on_device = platform.machine() == 'armv7l'
 app = QApplication(sys.argv)
 
 view = qml.QDeclarativeView()
@@ -70,15 +73,18 @@ model = ConversationstModel(controller.store)
 ctx = view.rootContext()
 ctx.setContextProperty('controller', controller)
 ctx.setContextProperty('pythonListModel', model)
-view.setSource('desktop.qml')
+view.setSource(os.path.join(os.path.dirname(__file__), 'main.qml' if on_device else 'desktop.qml'))
 
 button = view.rootObject().findChild(qt.QObject, "moreButton")
 button.clicked.connect(lambda: controller.worker.call('getMoreConversations', 5))
 
 window = QMainWindow()
 window.setCentralWidget(view)
-# window.showFullScreen()
-window.show()
+
+if on_device:
+    window.showFullScreen()
+else:
+    window.show()
 
 app.exec_()
 
