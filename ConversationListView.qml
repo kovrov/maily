@@ -1,9 +1,11 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
-import com.nokia.extras 1.0
+import com.nokia.extras 1.1
 
 
 ListView {
+
+    signal clicked(variant thrid)
 
     delegate: Item {
         id: listItem
@@ -47,9 +49,7 @@ ListView {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: {
-                onClicked: { controller.thingSelected(model.id) }
-            }
+            onClicked: { listView.clicked(model.id) }
         }
 
         ListView.onAdd: ParallelAnimation {

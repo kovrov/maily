@@ -1,6 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
-
+import com.nokia.extras 1.1
 
 
 PageStackWindow
@@ -21,8 +21,17 @@ PageStackWindow
             id: listView
             anchors.fill: parent
             model: pythonListModel
+
+            onClicked: {
+                banner.text = "X-GM-THRID: " + thrid
+                banner.show()
+            }
         }
 
         ScrollDecorator { flickableItem: listView }
+
+        InfoBanner {
+            id: banner
+        }
     }
 }
