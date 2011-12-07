@@ -8,7 +8,7 @@ PageStackWindow
     id: rootWindow
     // showStatusBar: false
     // showToolBar: false
-    property int pageMargin: 16
+    property int pageMargin: UiConstants.DefaultMargin
 
     // ListPage is what we see when the app starts, it links to
     // the component specific pages

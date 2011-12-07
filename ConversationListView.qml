@@ -1,4 +1,5 @@
 import QtQuick 1.1
+import com.nokia.meego 1.0
 import com.nokia.extras 1.0
 
 
@@ -6,7 +7,7 @@ ListView {
 
     delegate: Item {
         id: listItem
-        height: 88
+        height: UiConstants.ListItemHeightDefault
         width: parent.width
         Row {
             anchors.fill: parent
@@ -20,8 +21,7 @@ ListView {
                     Text {
                         id: subjectText
                         text: model.subject
-                        font.weight: Font.Bold
-                        font.pixelSize: 26
+                        font: UiConstants.TitleFont
                         width: countBubble.visible ? parent.width - countBubble.width : parent.width
                         elide: Text.ElideRight
                     }
@@ -37,8 +37,7 @@ ListView {
                 Text {
                     id: timestampText
                     text: model.date
-                    font.weight: Font.Light
-                    font.pixelSize: 22
+                    font: UiConstants.SubtitleFont
                     color: "#cc6633"
                     visible: text != ""
                     width: parent.width
@@ -84,7 +83,7 @@ ListView {
         property alias text: getMore.text
         color: "darkGray"
         width: parent.width
-        height: 48
+        height: UiConstants.ListItemHeightSmall
 
         Text {
             id: getMore
