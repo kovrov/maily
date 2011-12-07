@@ -69,7 +69,9 @@ try:
     ctx = view.rootContext()
     ctx.setContextProperty('controller', controller)
     ctx.setContextProperty('pythonListModel', model)
-    view.setSource(os.path.join(os.path.dirname(__file__), 'main.qml' if on_device else 'desktop.qml'))
+    view.setSource(os.path.join(os.path.dirname(__file__),
+                                'qml' if on_device else 'qml-desktop',
+                                'main.qml'))
 
     button = view.rootObject().findChild(qt.QObject, "moreButton")
     button.clicked.connect(lambda: controller.worker.call('getMoreConversations', 5))
