@@ -49,10 +49,6 @@ class Controller(qt.QObject):
         self.worker = imap.Client(self.store, 'xxx', 'yyy')
         self.worker.start()  # Thread
 
-    def __del__(self):
-        print "# join..."
-        self.worker.join(0)  # Thread
-
     @qt.Slot(long)
     def thingSelected(self, item):
         print 'User clicked on:', item
@@ -66,24 +62,28 @@ view = qml.QDeclarativeView()
 view.setResizeMode(qml.QDeclarativeView.SizeRootObjectToView)
 
 controller = Controller()
-model = ConversationstModel(controller.store)
 
-ctx = view.rootContext()
-ctx.setContextProperty('controller', controller)
-ctx.setContextProperty('pythonListModel', model)
-view.setSource(os.path.join(os.path.dirname(__file__), 'main.qml' if on_device else 'desktop.qml'))
+try:
+    model = ConversationstModel(controller.store)
 
-button = view.rootObject().findChild(qt.QObject, "moreButton")
-button.clicked.connect(lambda: controller.worker.call('getMoreConversations', 5))
+    ctx = view.rootContext()
+    ctx.setContextProperty('controller', controller)
+    ctx.setContextProperty('pythonListModel', model)
+    view.setSource(os.path.join(os.path.dirname(__file__), 'main.qml' if on_device else 'desktop.qml'))
 
-window = QMainWindow()
-window.setCentralWidget(view)
+    button = view.rootObject().findChild(qt.QObject, "moreButton")
+    button.clicked.connect(lambda: controller.worker.call('getMoreConversations', 5))
 
-if on_device:
-    window.showFullScreen()
-else:
-    window.show()
+    window = QMainWindow()
+    window.setCentralWidget(view)
 
-app.exec_()
+    if on_device:
+        window.showFullScreen()
+    else:
+        window.show()
 
-controller.worker.call('terminate')
+    app.exec_()
+
+finally:
+    controller.worker.call('terminate')
+    controller.worker.join(0)  # Thread
