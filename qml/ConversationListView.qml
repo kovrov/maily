@@ -96,5 +96,16 @@ ListView {
             anchors.fill: parent
             onClicked: { serviceAction.getMoreConversations(5) }
         }
+
+        ProgressBar {
+            id: progressBar
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            minimumValue: 0.0
+            maximumValue: 1.0
+            value: serviceAction.progress
+            visible: serviceAction.state != ServiceActionState.Undefined
+        }
     }
 }

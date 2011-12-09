@@ -19,12 +19,14 @@ class ServiceAction(qt.QObject):
         self._worker = worker
         self._serial = 0
         self._state = State.Undefined
+        self._progress = float()
 
     @qt.Slot(int)
     def getMoreConversations(self, num):
         if self._serial != 0:
             return
         self._worker.updated.connect(self._set_state)
+        self._worker.progress.connect(self._set_progress)
         self._serial = self._worker.call('getMoreConversations', num)
 
     def _set_state(self, serial, state, text):
@@ -33,14 +35,28 @@ class ServiceAction(qt.QObject):
             self.on_state.emit()
             if state in (State.Successful, State.Failed):
                 self._worker.updated.disconnect(self._set_state)
+                self._worker.progress.disconnect(self._set_progress)
+                # TODO: timer
                 self._serial = 0
                 self._state = State.Undefined
                 self.on_state.emit()
+                self._progress = float()
+                self.on_progress.emit()
 
     def _get_state(self):
         return self._state
     on_state = qt.Signal()
     state = qt.Property(int, _get_state, notify=on_state)
+
+    def _set_progress(self, serial, progress):
+        if serial == self._serial:
+            self._progress = progress
+            self.on_progress.emit()
+
+    def _get_progress(self):
+        return self._progress
+    on_progress = qt.Signal()
+    progress = qt.Property(float, _get_progress, notify=on_progress)
 
 
 
@@ -77,6 +93,7 @@ class Client(qt.QThread):
         return serial
 
     updated = qt.Signal(int, int, str)
+    progress = qt.Signal(int, float)
 
 
 
@@ -150,7 +167,7 @@ class Session(object):
                     break
             self.manager.updated.emit(serial, State.InProgress, "step 2")
             # TODO: sort thrids.added by date
-            for thrid in thrids.added:
+            for i, thrid in enumerate(thrids.added):
                 uids = self._search_thrid(thrid)
                 for uid, raw_headers in self._fetch_headers((uids[0],uids[-1]), ('SUBJECT','FROM','DATE')):
                     headers = self.email_parser.parsestr(raw_headers)
@@ -161,6 +178,6 @@ class Session(object):
                 transaction.thrids[thrid].message_ids = uids
                 transaction.thrids[thrid].subject = transaction.messages[uids[0]].subject
                 transaction.thrids[thrid].date = transaction.messages[uids[-1]].timestamp
-                self.manager.updated.emit(serial, State.InProgress, str(thrid))
+                self.manager.progress.emit(serial, float(i+1) / len(thrids.added))
                 transaction.commit(block=True)
             self.manager.updated.emit(serial, State.Successful, "done")

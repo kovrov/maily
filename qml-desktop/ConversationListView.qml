@@ -86,7 +86,7 @@ ListView {
 
         Text {
             id: getMore
-            text: serviceAction.state == ServiceActionState.InProgress ? "working..." : "get more"
+            text: serviceAction.state == ServiceActionState.Undefined ? "get more" : "working..."
             font.pointSize: 20
             anchors.centerIn: parent
             color: "white"
@@ -96,6 +96,15 @@ ListView {
             onClicked: {
                 serviceAction.getMoreConversations(5)
             }
+        }
+        Rectangle {
+            id: progressBar
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            height: 8
+            width: parent.width * serviceAction.progress
+            visible: serviceAction.state != ServiceActionState.Undefined
+            color: "black"
         }
     }
 }
