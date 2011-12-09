@@ -1,11 +1,45 @@
 from imaplib import IMAP4_SSL
 from email.parser import HeaderParser
 from email.header import make_header, decode_header
+from threading import Lock
 from Queue import Queue
 from itertools import islice
+from collections import namedtuple
 import re
 from PySide import QtCore as qt
 import store
+
+
+
+State = namedtuple('State', 'Undefined Pending InProgress Successful Failed')._make(range(5))
+
+class ServiceAction(qt.QObject):
+    def __init__(self, worker):
+        qt.QObject.__init__(self)
+        self._worker = worker
+        self._serial = 0
+        self._state = State.Undefined
+
+    @qt.Slot(int, result=int)
+    def getMoreConversations(self, num):
+        if self._serial != 0:
+            return
+        self._worker.updated.connect(self._set_state)
+        self._serial = self._worker.call('getMoreConversations', num)
+
+    def _set_state(self, serial, state, text):
+        if serial == self._serial:
+            self._state = state
+            self.on_state.emit()
+            if state in (State.Successful, State.Failed):
+                self._worker.updated.disconnect(self._set_state)
+                self._serial = 0
+                self._state = State.Undefined
+
+    def _get_state(self):
+        return self._state
+    on_state = qt.Signal()
+    state = qt.Property(int, _get_state, notify=on_state)
 
 
 
@@ -15,25 +49,31 @@ class Client(qt.QThread):
     def __init__(self, store, user, pswd):
         qt.QThread.__init__(self)
         print "### Client.__init__"
-        self._args = user, pswd
+        self._args = store, user, pswd
         self._queue = Queue()
-        self._store = store
+        self._counter = 0
+        self._counter_lock = Lock()
 
     def run(self):
         print "### Client.run"
-        session = Session(self._store, *self._args)
+        session = Session(self, *self._args)
         while True:
             print "  # _queue.get()"
-            method, args = self._queue.get()
-            if method is 'terminate':
+            serial, method, args = self._queue.get()
+            if method == 'terminate':
                 self._queue.task_done()
                 break
-            res = getattr(session, method)(*args)
+            res = getattr(session, method)(serial, *args)
             self._queue.task_done()
 
     def call(self, method, *args):
         print "### Client.call", method, args
-        self._queue.put((method, args))
+        with self._counter_lock:
+            self._counter += 1
+            serial = self._counter
+            self.updated.emit(serial, State.Pending, "put in queue")
+        self._queue.put((serial, method, args))
+        return serial
 
     updated = qt.Signal(int, int, str)
 
@@ -42,7 +82,8 @@ class Client(qt.QThread):
 class Session(object):
     '''Session is representing partial mailbox state'''
 
-    def __init__(self, store, user, pswd):
+    def __init__(self, manager, store, user, pswd):
+        self.manager = manager
         self._store = store
         self.smallest_uid_position = 0  # zero is invalid
         self.connection = IMAP4_SSL("imap.gmail.com")
@@ -93,8 +134,9 @@ class Session(object):
             yield long(re.search(self.uid_pattern, uid).group(1)), raw_headers
 
     email_parser = HeaderParser()
-    def getMoreConversations(self, count):
+    def getMoreConversations(self, serial, count):
         with self._store.writeLock as transaction:
+            self.manager.updated.emit(serial, State.InProgress, "step 1")
             thrids = store.ConversationsDefaultDict(self._store.snapshot.conversations)
             while len(thrids.added) < count:
                 n = count - len(thrids.added)
@@ -104,6 +146,7 @@ class Session(object):
                     n -= 1
                 if n > 0:
                     break
+            self.manager.updated.emit(serial, State.InProgress, "step 2")
             # TODO: sort thrids.added by date
             for thrid in thrids.added:
                 uids = self._search_thrid(thrid)
@@ -116,4 +159,6 @@ class Session(object):
                 transaction.thrids[thrid].message_ids = uids
                 transaction.thrids[thrid].subject = transaction.messages[uids[0]].subject
                 transaction.thrids[thrid].date = transaction.messages[uids[-1]].timestamp
+                self.manager.updated.emit(serial, State.InProgress, str(thrid))
                 transaction.commit(block=True)
+            self.manager.updated.emit(serial, State.Successful, "done")

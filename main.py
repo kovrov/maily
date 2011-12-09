@@ -41,41 +41,27 @@ class ConversationstModel(qt.QAbstractListModel):
 
 
 
-class Controller(qt.QObject):
-
-    def __init__(self):
-        qt.QObject.__init__(self)
-        self.store = store.Store()
-        self.worker = imap.Client(self.store, 'xxx', 'yyy')
-        self.worker.start()  # Thread
-
-    @qt.Slot(long)
-    def thingSelected(self, item):
-        print 'User clicked on:', item
-
-
-
 on_device = platform.machine() == 'armv7l'
 app = QApplication(sys.argv)
 
 view = qml.QDeclarativeView()
 view.setResizeMode(qml.QDeclarativeView.SizeRootObjectToView)
 
-controller = Controller()
+store_mgr = store.Store()
+imap_client = imap.Client(store_mgr, 'xxx', 'yyy')
+imap_client.start()  # Thread
+service_action = imap.ServiceAction(imap_client)
 
 try:
-    model = ConversationstModel(controller.store)
+    model = ConversationstModel(store_mgr)
 
     ctx = view.rootContext()
-    ctx.setContextProperty('controller', controller)
     ctx.setContextProperty('pythonListModel', model)
+    ctx.setContextProperty('ServiceActionState', dict(zip(imap.State._fields, imap.State)))
+    ctx.setContextProperty('serviceAction', service_action)
     view.setSource(os.path.join(os.path.dirname(__file__),
                                 'qml' if on_device else 'qml-desktop',
                                 'main.qml'))
-
-    button = view.rootObject().findChild(qt.QObject, "moreButton")
-    button.clicked.connect(lambda: controller.worker.call('getMoreConversations', 5))
-
     window = QMainWindow()
     window.setCentralWidget(view)
 
@@ -87,5 +73,5 @@ try:
     app.exec_()
 
 finally:
-    controller.worker.call('terminate')
-    controller.worker.wait() #.join(0)  # Thread
+    imap_client.call('terminate')
+    imap_client.wait() #.join(0)

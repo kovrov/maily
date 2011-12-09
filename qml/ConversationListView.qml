@@ -87,14 +87,14 @@ ListView {
 
         Text {
             id: getMore
-            text: "get more"
+            text: serviceAction.state == ServiceActionState.InProgress ? "working..." : "get more"
             font.pointSize: 20
             anchors.centerIn: parent
             color: "white"
         }
         MouseArea {
-            objectName: "moreButton"
             anchors.fill: parent
+            onClicked: { serviceAction.getMoreConversations(5) }
         }
     }
 }
