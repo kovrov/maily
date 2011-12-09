@@ -88,4 +88,4 @@ try:
 
 finally:
     controller.worker.call('terminate')
-    controller.worker.join(0)  # Thread
+    controller.worker.wait() #.join(0)  # Thread

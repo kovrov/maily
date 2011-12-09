@@ -1,19 +1,19 @@
 from imaplib import IMAP4_SSL
 from email.parser import HeaderParser
 from email.header import make_header, decode_header
-from threading import Thread
 from Queue import Queue
 from itertools import islice
 import re
+from PySide import QtCore as qt
 import store
 
 
 
-class Client(Thread):
+class Client(qt.QThread):
     '''Client is asynchronous interface to imap service (consider to rename)'''
 
     def __init__(self, store, user, pswd):
-        Thread.__init__(self)
+        qt.QThread.__init__(self)
         print "### Client.__init__"
         self._args = user, pswd
         self._queue = Queue()
@@ -34,6 +34,8 @@ class Client(Thread):
     def call(self, method, *args):
         print "### Client.call", method, args
         self._queue.put((method, args))
+
+    updated = qt.Signal(int, int, str)
 
 
 
