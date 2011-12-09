@@ -35,6 +35,7 @@ class ServiceAction(qt.QObject):
                 self._worker.updated.disconnect(self._set_state)
                 self._serial = 0
                 self._state = State.Undefined
+                self.on_state.emit()
 
     def _get_state(self):
         return self._state
