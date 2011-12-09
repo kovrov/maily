@@ -42,9 +42,7 @@ class Session(object):
 
     def __init__(self, store, user, pswd):
         self._store = store
-
         self.smallest_uid_position = 0  # zero is invalid
-
         self.connection = IMAP4_SSL("imap.gmail.com")
         self.connection.login(user, pswd)
         typ, messages_count = self.connection.select()
@@ -62,7 +60,6 @@ class Session(object):
         if lo < fetched_lo or hi > fetched_hi:
             message_set = "{0:d}:{1:d}".format(max(1, hi - pre + 1), hi)
             message_parts = '('+ ' '.join(names) +')'
-            print 'FETCH', message_set, message_parts
             typ, fetched_data = self.connection.fetch(message_set, message_parts)
             fetched_lo = int(fetched_data[0].split(None,1)[0])
             fetched_hi = int(fetched_data[-1].split(None,1)[0])
@@ -82,7 +79,6 @@ class Session(object):
         self.smallest_uid_position -= len(fetch_data)
 
     def _search_thrid(self, thrid):
-        print 'SEARCH X-GM-THRID', thrid
         typ, data = self.connection.uid("SEARCH", None, 'X-GM-THRID', thrid)
         return [long(i) for i in data[0].split()]
 
@@ -90,7 +86,6 @@ class Session(object):
     def _fetch_headers(self, uids, headers):
         message_set = ','.join(map(lambda i: str(i), sorted(set(uids))))
         message_parts = '(BODY[HEADER.FIELDS ('+ ' '.join(headers) +')])'
-        print 'FETCH', message_set, message_parts
         typ, data = self.connection.uid("FETCH", message_set, message_parts)
         for uid, raw_headers in islice(data, 0, None, 2):
             yield long(re.search(self.uid_pattern, uid).group(1)), raw_headers
