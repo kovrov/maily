@@ -20,7 +20,7 @@ class ServiceAction(qt.QObject):
         self._serial = 0
         self._state = State.Undefined
 
-    @qt.Slot(int, result=int)
+    @qt.Slot(int)
     def getMoreConversations(self, num):
         if self._serial != 0:
             return
