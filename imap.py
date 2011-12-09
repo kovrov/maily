@@ -97,7 +97,8 @@ class Session(object):
         self.connection.close()
         self.connection.logout()
 
-    def _fetch_cached(self, hi, lo, names, pre=64):
+    def _fetch_cached(self, hi, lo, names, pre=None):
+        pre = min(max(16, (hi - lo) * 2), max(hi - lo, 64)) if pre is None else pre
         assert lo <= hi and hi - lo < pre
         fetched_hi, fetched_lo, fetched_data = self.prefetch_data
         if lo < fetched_lo or hi > fetched_hi:
