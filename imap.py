@@ -1,6 +1,7 @@
 from imaplib import IMAP4_SSL
 from email.parser import HeaderParser
 from email.header import make_header, decode_header
+from email.utils import mktime_tz, parsedate_tz
 from threading import Lock
 from Queue import Queue
 from itertools import islice
@@ -174,7 +175,7 @@ class Session(object):
                     message = transaction.messages[uid]
                     message.subject = unicode(make_header(decode_header(headers['subject']))).replace('\r\n ',' ')
                     message.sender = unicode(make_header(decode_header(headers['from'])))
-                    message.timestamp = headers['date']
+                    message.timestamp = mktime_tz(parsedate_tz(headers['date']))
                 transaction.thrids[thrid].message_ids = uids
                 transaction.thrids[thrid].subject = transaction.messages[uids[0]].subject
                 transaction.thrids[thrid].date = transaction.messages[uids[-1]].timestamp
