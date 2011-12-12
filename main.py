@@ -12,32 +12,35 @@ import store
 
 
 class ConversationstModel(qt.QAbstractListModel):
-    # TODO: use snapshot.conversations.sorted
 
     def __init__(self, store_mgr):
         qt.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(store.ConversationColumns)))
-        self._data = store_mgr.snapshot.conversations
+        self._by_date = store_mgr.snapshot.conversations_by_date
+        self._snapshot = store_mgr.snapshot
         store_mgr.conversationsChanged.connect(self.conversationsChanged)
 
     def rowCount(self, parent=qt.QModelIndex()):
-        return len(self._data)
+        return len(self._by_date)
 
     def data(self, index, role):
         if not index.isValid():
             return None
-        return self._data[index.row()][role]
+        date, uid = self._by_date[index.row()]
+        i = store.b_index(self._snapshot.conversations, uid)
+        return self._snapshot.conversations[i][role]
 
     def conversationsChanged(self, snapshot, diff):
+        self._snapshot = snapshot
         modified_ids, added_ids = diff
-        indices = [store.b_index(snapshot.conversations, i) for i in added_ids]
+        indices = [n for n,i in enumerate(snapshot.conversations_by_date) if i[1] in added_ids]
         pairs = zip([i for n,i in enumerate(indices) if n == 0 or i - indices[n-1] > 1],
                     [i for n,i in enumerate(indices) if n+1 == len(indices) or indices[n+1] - i > 1])
         for begin, end in pairs:
             self.beginInsertRows(qt.QModelIndex(), begin, end)
-            self._data = self._data[:begin] + snapshot.conversations[begin:end+1] + self._data[begin:]
+            self._by_date = self._by_date[:begin] + snapshot.conversations_by_date[begin:end+1] + self._by_date[begin:]
             self.endInsertRows()
-        self._data = snapshot.conversations
+        self._by_date = snapshot.conversations_by_date
 
 
 

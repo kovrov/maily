@@ -17,7 +17,7 @@ Worth consideration:
 '''
 
 
-Snapshot = namedtuple('Snapshot',['conversations','messages'])
+Snapshot = namedtuple('Snapshot',['conversations','conversations_by_date','messages'])
 
 
 def b_index(a, key):
@@ -39,7 +39,7 @@ class Store(qt.QObject):
     def __init__(self):
         qt.QObject.__init__(self)
         self.writeLock = TransactionLock(self)
-        self.snapshot = Snapshot(tuple(), tuple())
+        self.snapshot = Snapshot(tuple(), tuple(), tuple())
     conversationsChanged = qt.Signal(tuple, tuple)
 
 
@@ -75,7 +75,10 @@ class Transaction(object):
 
     def commit(self, block=True):
         new_conversations = _merge(self._snapshot.conversations, self.thrids.modified, self.thrids.added, Conversation)
-        self._store.snapshot = Snapshot(conversations=new_conversations, messages=self._snapshot.messages)
+        conversations_by_date = tuple(sorted(((i.date, i.id) for i in new_conversations), reverse=True))
+        self._store.snapshot = Snapshot(conversations=new_conversations,
+                                        conversations_by_date = conversations_by_date,
+                                        messages=self._snapshot.messages)
         self._store.conversationsChanged.emit(self._store.snapshot, (sorted(self.thrids.modified.keys()),
                                                                        sorted(self.thrids.added.keys())))
         self.__init__(self._store)
