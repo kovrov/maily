@@ -1,6 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import com.nokia.extras 1.1
+import "format.js" as Format
 
 
 ListView {
@@ -38,7 +39,7 @@ ListView {
 
                 Text {
                     id: timestampText
-                    text: model.date
+                    text: Format.elapsedTimestamp(model.date)
                     font: UiConstants.SubtitleFont
                     color: "#cc6633"
                     visible: text != ""

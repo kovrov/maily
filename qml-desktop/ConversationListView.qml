@@ -1,4 +1,5 @@
 import QtQuick 1.1
+import "format.js" as Format
 
 
 ListView {
@@ -36,7 +37,7 @@ ListView {
 
                 Text {
                     id: timestampText
-                    text: model.date
+                    text: Format.elapsedTimestamp(model.date)
                     font.weight: Font.Light
                     font.pixelSize: 22
                     color: "#cc6633"
