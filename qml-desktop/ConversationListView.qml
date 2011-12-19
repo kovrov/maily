@@ -1,5 +1,5 @@
 import QtQuick 1.1
-import "format.js" as Format
+import com.inc11.maily 0.1
 
 
 ListView {
@@ -37,7 +37,7 @@ ListView {
 
                 Text {
                     id: timestampText
-                    text: Format.elapsedTimestamp(model.date)
+                    text: dateFormat.cache.lookup(model.date*1000)
                     font.weight: Font.Light
                     font.pixelSize: 22
                     color: "#cc6633"
@@ -57,6 +57,39 @@ ListView {
             PropertyAction { target: listItem; property: "height"; value: 0 }
             NumberAnimation { target: listItem; property: "scale"; to: 1.0; duration: 75 }
             NumberAnimation { target: listItem; property: "height"; to: 88; duration: 75 }
+        }
+    }
+
+    DateFormat {
+        id: dateFormat
+
+        /* if defined, function with this name will be called to get string
+         * representation of date, and optionally expiration timer
+         */
+        function format(timestamp) {
+            var date = new Date(timestamp)
+            var now = new Date
+            var minutes_ago = ((now - date) / 60000)<<0
+
+            if (minutes_ago < 1) {
+                return ["just now", 60]
+            }
+
+            if (minutes_ago < 60) {
+                return [minutes_ago.toString() + " minutes ago", 60]
+            }
+
+            if (minutes_ago < 24*60) {
+                return [((minutes_ago / 60)<<0).toString() + " hours ago",
+                        (60 - (minutes_ago % 60)<<0) * 60]
+            }
+
+            if (minutes_ago < 30*24*60) {
+                return [((minutes_ago / 60 / 24)<<0).toString() + " days ago",
+                        (24*60 - (minutes_ago % (24*60))<<0) * 60]
+            }
+
+            return Qt.formatDate(date, Qt.DefaultLocaleLongDate)
         }
     }
 
