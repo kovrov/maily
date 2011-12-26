@@ -17,7 +17,7 @@ Worth consideration:
 '''
 
 
-Snapshot = namedtuple('Snapshot',['conversations','conversations_by_date','messages'])
+Snapshot = namedtuple('Snapshot',['conversations','mailbox','messages'])
 
 
 def b_index(a, key):
@@ -57,11 +57,8 @@ class TransactionLock(object):
 
 
 def _merge(original, modified, added, Type):
-    if modified:
-        original = [Conversation(*modified[i.id]) if i.id in modified else i for i in original]
-    else:
-        original = list(original)
-    return tuple(sorted(original + [Type(*i) for i in added.values()]))
+    merged = [Conversation(*modified[i.id]) if i.id in modified else i for i in original]
+    return tuple(sorted(merged + [Type(*i) for i in added.values()]))
 
 class Transaction(object):
     '''
@@ -75,9 +72,9 @@ class Transaction(object):
 
     def commit(self, block=True):
         new_conversations = _merge(self._snapshot.conversations, self.thrids.modified, self.thrids.added, Conversation)
-        conversations_by_date = tuple(sorted(((i.date, i.id) for i in new_conversations), reverse=True))
+        mailbox = tuple(n for i,n in sorted(((i.date, n) for n,i in enumerate(new_conversations)), reverse=True))
         self._store.snapshot = Snapshot(conversations=new_conversations,
-                                        conversations_by_date = conversations_by_date,
+                                        mailbox = mailbox,
                                         messages=self._snapshot.messages)
         self._store.conversationsChanged.emit(self._store.snapshot, (sorted(self.thrids.modified.keys()),
                                                                        sorted(self.thrids.added.keys())))

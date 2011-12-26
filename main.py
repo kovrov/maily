@@ -16,32 +16,38 @@ class ConversationstModel(qt.QAbstractListModel):
     def __init__(self, store_mgr):
         qt.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(store.ConversationColumns)))
-        self._by_date = store_mgr.snapshot.conversations_by_date
+        self._sorted = store_mgr.snapshot.mailbox
         self._snapshot = store_mgr.snapshot
         store_mgr.conversationsChanged.connect(self.conversationsChanged)
 
     def rowCount(self, parent=qt.QModelIndex()):
-        return len(self._by_date)
+        return len(self._sorted)
 
     def data(self, index, role):
         if not index.isValid():
             return None
-        date, uid = self._by_date[index.row()]
-        i = store.b_index(self._snapshot.conversations, uid)
-        return self._snapshot.conversations[i][role]
+        return self._snapshot.conversations[self._sorted[index.row()]][role]
 
     def conversationsChanged(self, snapshot, diff):
         self._snapshot = snapshot
         modified_ids, added_ids = diff
-        indices = [n for n,i in enumerate(snapshot.conversations_by_date) if i[1] in added_ids]
-        pairs = zip([i for n,i in enumerate(indices) if n == 0 or i - indices[n-1] > 1],
-                    [i for n,i in enumerate(indices) if n+1 == len(indices) or indices[n+1] - i > 1])
-        for begin, end in pairs:
+        indices = [n for n,i in enumerate(snapshot.mailbox) if snapshot.conversations[i].id in added_ids]
+        for begin, end in pairs(indices):
             self.beginInsertRows(qt.QModelIndex(), begin, end)
-            self._by_date = self._by_date[:begin] + snapshot.conversations_by_date[begin:end+1] + self._by_date[begin:]
+            self._sorted = self._sorted[:begin] + snapshot.mailbox[begin:end+1] + self._sorted[begin:]
             self.endInsertRows()
-        self._by_date = snapshot.conversations_by_date
+        self._sorted = snapshot.mailbox
 
+
+def pairs(numbers):
+    it = iter(numbers)
+    x = y = next(it)
+    for i in it:
+        if i - y > 1:
+            yield x, y
+            x = i
+        y = i
+    yield x, y
 
 
 on_device = platform.machine() == 'armv7l'
