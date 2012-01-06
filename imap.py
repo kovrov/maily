@@ -1,3 +1,4 @@
+import socket
 from imaplib import IMAP4_SSL
 from email.parser import HeaderParser
 from email.header import make_header, decode_header
@@ -9,15 +10,16 @@ from collections import namedtuple
 import re
 from PySide import QtCore as qt
 import store
-
+from utils import singleton, requires
+import threading
 
 
 State = namedtuple('State', 'Undefined Pending InProgress Successful Failed')._make(range(5))
 
 class ServiceAction(qt.QObject):
-    def __init__(self, worker):
-        qt.QObject.__init__(self)
-        self._worker = worker
+    def __init__(self, parent=None):
+        qt.QObject.__init__(self, parent)
+        self._dispatcher = None
         self._serial = 0
         self._state = State.Undefined
         self._progress = float()
@@ -26,28 +28,30 @@ class ServiceAction(qt.QObject):
     def getMoreConversations(self, num):
         if self._serial != 0:
             return
-        self._worker.updated.connect(self._set_state)
-        self._worker.progress.connect(self._set_progress)
-        self._serial = self._worker.call('getMoreConversations', num)
+        if self._dispatcher is None:
+            self._dispatcher = Client()
+        self._dispatcher.updated.connect(self._set_state)
+        self._dispatcher.progress.connect(self._set_progress)
+        self._serial = self._dispatcher.call('getMoreConversations', num)
 
     def _set_state(self, serial, state, text):
         if serial == self._serial:
             self._state = state
-            self.on_state.emit()
+            self.stateChanged.emit()
             if state in (State.Successful, State.Failed):
-                self._worker.updated.disconnect(self._set_state)
-                self._worker.progress.disconnect(self._set_progress)
+                self._dispatcher.updated.disconnect(self._set_state)
+                self._dispatcher.progress.disconnect(self._set_progress)
                 # TODO: timer
                 self._serial = 0
                 self._state = State.Undefined
-                self.on_state.emit()
+                self.stateChanged.emit()
                 self._progress = float()
                 self.on_progress.emit()
 
     def _get_state(self):
         return self._state
-    on_state = qt.Signal()
-    state = qt.Property(int, _get_state, notify=on_state)
+    stateChanged = qt.Signal()
+    state = qt.Property(int, _get_state, notify=stateChanged)
 
     def _set_progress(self, serial, progress):
         if serial == self._serial:
@@ -61,31 +65,37 @@ class ServiceAction(qt.QObject):
 
 
 
-class Client(qt.QThread):
+@singleton
+class Client(qt.QObject):
     '''Client is asynchronous interface to imap service (consider to rename)'''
 
-    def __init__(self, store, user, pswd):
-        qt.QThread.__init__(self)
-        print "### Client.__init__"
-        self._args = store, user, pswd
+    def __init__(self):
+        qt.QObject.__init__(self)
         self._queue = Queue()
         self._counter = 0
         self._counter_lock = Lock()
+        thread = qt.QThread(self)
+        self.moveToThread(thread)
+        thread.started.connect(self.run)
+        thread.start()
 
+    @qt.Slot()
     def run(self):
-        print "### Client.run"
-        session = Session(self, *self._args)
+        app = qt.QCoreApplication.instance()
+        app.aboutToQuit.connect(lambda: self.call('terminate'))
+        session = Session(self)
         while True:
-            print "  # _queue.get()"
             serial, method, args = self._queue.get()
             if method == 'terminate':
                 self._queue.task_done()
                 break
-            res = getattr(session, method)(serial, *args)
+            try:
+                res = getattr(session, method)(serial, *args)
+            except SessionError as e:
+                self.updated.emit(serial, State.Failed, e.message)
             self._queue.task_done()
 
     def call(self, method, *args):
-        print "### Client.call", method, args
         with self._counter_lock:
             self._counter += 1
             serial = self._counter
@@ -98,24 +108,45 @@ class Client(qt.QThread):
 
 
 
+class SessionError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+
 class Session(object):
     '''Session is representing partial mailbox state'''
 
-    def __init__(self, manager, store, user, pswd):
+    def __init__(self, manager):
         self.manager = manager
-        self._store = store
+        self._store = store.Store()
         self.smallest_uid_position = 0  # zero is invalid
-        self.connection = IMAP4_SSL("imap.gmail.com")
-        self.connection.login(user, pswd)
-        typ, messages_count = self.connection.select()
-        self.smallest_uid_position = int(messages_count[0])
         self.prefetch_data = (-1,-1,[])
+        self.connection = None
+        try:
+            self.online()
+        except SessionError:
+            pass
 
     def __del__(self):
         # TODO: serialize?
-        self.connection.close()
-        self.connection.logout()
+        if self.connection:
+            self.connection.close()
+            self.connection.logout()
 
+    def online(self):
+        # return False
+        if self.connection: return True
+        try:
+            self.connection = IMAP4_SSL("imap.gmail.com")
+            self.connection.login('xxx', 'yyy')
+            typ, messages_count = self.connection.select()
+            self.smallest_uid_position = int(messages_count[0])
+        except socket.gaierror:
+            self.connection = None
+            raise SessionError('could not resolve server name')
+
+    @requires(online)
     def _fetch_cached(self, hi, lo, names, pre=None):
         pre = min(max(16, (hi - lo) * 2), max(hi - lo, 64)) if pre is None else pre
         assert lo <= hi and hi - lo < pre
@@ -141,11 +172,13 @@ class Session(object):
         # FIXME: not sure if this belongs here..
         self.smallest_uid_position -= len(fetch_data)
 
+    @requires(online)
     def _search_thrid(self, thrid):
         typ, data = self.connection.uid("SEARCH", None, 'X-GM-THRID', thrid)
         return [long(i) for i in data[0].split()]
 
     uid_pattern = re.compile('UID (\d+)')
+    @requires(online)
     def _fetch_headers(self, uids, headers):
         message_set = ','.join(map(lambda i: str(i), sorted(set(uids))))
         message_parts = '(BODY[HEADER.FIELDS ('+ ' '.join(headers) +')])'

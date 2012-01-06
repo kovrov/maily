@@ -20,7 +20,6 @@ PageStackWindow
         ConversationListView {
             id: listView
             anchors.fill: parent
-            model: pythonListModel
 
             onClicked: {
                 banner.text = "X-GM-THRID: " + thrid

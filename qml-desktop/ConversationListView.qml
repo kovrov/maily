@@ -1,10 +1,14 @@
 import QtQuick 1.1
 import com.inc11.maily 0.1
+import Maily 1.0
 
 
 ListView {
 
     signal clicked(variant thrid)
+
+    model: ConversationsModel {
+    }
 
     delegate: Item {
         id: listItem
@@ -112,11 +116,14 @@ ListView {
 
     footer: Rectangle {
         id: moreButton
-        signal clicked
-        property alias text: getMore.text
         color: "darkGray"
         width: parent.width
         height: 48
+
+        ServiceAction {
+            id: serviceAction
+            onStateChanged: { if (state == ServiceActionState.Failed) console.log("exceptipn") }
+        }
 
         Text {
             id: getMore
@@ -125,12 +132,14 @@ ListView {
             anchors.centerIn: parent
             color: "white"
         }
+
         MouseArea {
             anchors.fill: parent
             onClicked: {
                 serviceAction.getMoreConversations(5)
             }
         }
+
         Rectangle {
             id: progressBar
             anchors.bottom: parent.bottom

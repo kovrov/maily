@@ -2,11 +2,15 @@ import QtQuick 1.1
 import com.nokia.meego 1.0
 import com.nokia.extras 1.1
 import com.inc11.maily 0.1
+import Maily 1.0
 
 
 ListView {
 
     signal clicked(variant thrid)
+
+    model: ConversationsModel {
+    }
 
     delegate: Item {
         id: listItem
@@ -113,11 +117,19 @@ ListView {
 
     footer: Rectangle {
         id: moreButton
-        signal clicked
-        property alias text: getMore.text
         color: "darkGray"
         width: parent.width
         height: UiConstants.ListItemHeightSmall
+
+        ServiceAction {
+            id: serviceAction
+            onStateChanged: {
+                if (state == ServiceActionState.Failed) {
+                    banner.text = "Aaaa!!!"
+                    banner.show()
+                }
+            }
+        }
 
         Text {
             id: getMore

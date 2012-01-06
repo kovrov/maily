@@ -5,7 +5,6 @@ import QtQuick 1.1
 Item {
     ConversationListView {
         id: listView
-        model: pythonListModel
         anchors.fill: parent
     }
     Rectangle {

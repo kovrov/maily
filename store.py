@@ -1,6 +1,7 @@
 from PySide import QtCore as qt
 from threading import Lock
 from collections import namedtuple
+from utils import singleton
 
 
 '''
@@ -35,6 +36,8 @@ def b_index(a, key):
     raise KeyError(key)
 
 
+
+@singleton
 class Store(qt.QObject):
     def __init__(self):
         qt.QObject.__init__(self)
