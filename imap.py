@@ -1,5 +1,5 @@
 import socket
-from imaplib import IMAP4_SSL
+from imaplib import IMAP4_SSL, IMAP4
 from email.parser import HeaderParser
 from email.header import make_header, decode_header
 from email.utils import mktime_tz, parsedate_tz
@@ -135,16 +135,26 @@ class Session(object):
             self.connection.logout()
 
     def online(self):
-        # return False
-        if self.connection: return True
+        if self.connection:
+            return True
         try:
             self.connection = IMAP4_SSL("imap.gmail.com")
-            self.connection.login('xxx', 'yyy')
-            typ, messages_count = self.connection.select()
-            self.smallest_uid_position = int(messages_count[0])
         except socket.gaierror:
-            self.connection = None
             raise SessionError('could not resolve server name')
+        except socket.error:
+            raise SessionError('could not connect to server')
+        try:
+            self.connection.login('xxx', 'yyy')
+        except IMAP4.error as e:
+            self.connection.shutdown()
+            self.connection = None
+            raise SessionError(e.message)
+        typ, messages_count = self.connection.select()
+        if typ == 'NO':
+            self.connection.logout()
+            self.connection = None
+            raise SessionError(messages_count[0])
+        self.smallest_uid_position = int(messages_count[0])
 
     @requires(online)
     def _fetch_cached(self, hi, lo, names, pre=None):
