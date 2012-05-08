@@ -11,7 +11,7 @@ import re
 from PySide import QtCore as qt
 import store
 from utils import singleton, requires
-import threading
+
 
 
 State = namedtuple('State', 'Undefined Pending InProgress Successful Failed')._make(range(5))
@@ -29,7 +29,7 @@ class ServiceAction(qt.QObject):
         if self._serial != 0:
             return
         if self._dispatcher is None:
-            self._dispatcher = Client()
+            self._dispatcher = ActionDispatcher()
         self._dispatcher.updated.connect(self._set_state)
         self._dispatcher.progress.connect(self._set_progress)
         self._serial = self._dispatcher.call('getMoreConversations', num)
@@ -66,8 +66,8 @@ class ServiceAction(qt.QObject):
 
 
 @singleton
-class Client(qt.QObject):
-    '''Client is asynchronous interface to imap service (consider to rename)'''
+class ActionDispatcher(qt.QObject):
+    '''ActionDispatcher is asynchronous interface to imap service (consider to rename)'''
 
     def __init__(self):
         qt.QObject.__init__(self)
@@ -83,14 +83,14 @@ class Client(qt.QObject):
     def run(self):
         app = qt.QCoreApplication.instance()
         app.aboutToQuit.connect(lambda: self.call('terminate'))
-        session = Session(self)
+        processor = ActionProcessor(self)
         while True:
             serial, method, args = self._queue.get()
             if method == 'terminate':
                 self._queue.task_done()
                 break
             try:
-                res = getattr(session, method)(serial, *args)
+                res = getattr(processor, method)(serial, *args)
             except SessionError as e:
                 self.updated.emit(serial, State.Failed, e.message)
             self._queue.task_done()
@@ -114,8 +114,8 @@ class SessionError(Exception):
 
 
 
-class Session(object):
-    '''Session is representing partial mailbox state'''
+class ActionProcessor(object):
+    '''ActionProcessor is representing partial mailbox state'''
 
     def __init__(self, manager):
         self.manager = manager
